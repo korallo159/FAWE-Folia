@@ -257,6 +257,22 @@ public final class PaperweightPlatformAdapter extends NMSAdapter {
     }
 
     public static CompletableFuture<LevelChunk> ensureLoaded(ServerLevel serverLevel, int chunkX, int chunkZ) {
+        // Folia's getChunkAtAsync completes on the owning region. Waiting for that future from
+        // the same region (relight, paste, flush) parks the region forever.
+        if (Fawe.isFoliaServer()) {
+            LevelChunk levelChunk = getChunkImmediatelyAsync(serverLevel, chunkX, chunkZ);
+            if (levelChunk != null) {
+                return CompletableFuture.completedFuture(levelChunk);
+            }
+            LevelChunk loaded = RegionSync.supply(
+                    serverLevel.getWorld(),
+                    chunkX << 4,
+                    0,
+                    chunkZ << 4,
+                    () -> serverLevel.getChunk(chunkX, chunkZ)
+            );
+            return CompletableFuture.completedFuture(loaded);
+        }
         LevelChunk levelChunk = getChunkImmediatelyAsync(serverLevel, chunkX, chunkZ);
         if (levelChunk != null) {
             return CompletableFuture.completedFuture(levelChunk);
@@ -327,6 +343,11 @@ public final class PaperweightPlatformAdapter extends NMSAdapter {
             }
             // Avoid "async" methods from the main thread.
             if (Fawe.isMainThread()) {
+                return serverLevel.getChunk(chunkX, chunkZ);
+            }
+            // Folia has no main thread. The thread that already owns this chunk must load it
+            // here; getChunkAtAsync would queue the load back onto this same thread.
+            if (Fawe.isFoliaServer() && org.bukkit.Bukkit.isOwnedByCurrentRegion(serverLevel.getWorld(), chunkX, chunkZ)) {
                 return serverLevel.getChunk(chunkX, chunkZ);
             }
             return null;

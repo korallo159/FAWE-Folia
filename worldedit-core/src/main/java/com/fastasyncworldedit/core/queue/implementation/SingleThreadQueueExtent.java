@@ -255,7 +255,10 @@ public class SingleThreadQueueExtent extends ExtentBatchProcessorHolder implemen
 
         chunk.invalidateWrapper();
 
-        if (Fawe.isMainThread()) {
+        // On Folia the region thread is the only thread allowed to load and write the chunk.
+        // Handing that to the blocking pool and then waiting deadlocks: the pool asks the same
+        // region to finish the load, and the region is stuck in flush().
+        if (Fawe.isMainThread() || Fawe.isFoliaServer()) {
             V result = (V) chunk.call();
             if (result == null) {
                 return (V) (Future) Futures.immediateFuture(null);

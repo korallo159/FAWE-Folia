@@ -1351,7 +1351,9 @@ public class EditSession extends PassthroughExtent implements AutoCloseable {
         // Reset limit
         limit.set(originalLimit);
         try {
-            if (relighter != null && !(relighter instanceof NullRelighter)) {
+            // Folia relight reads neighbouring chunks and waits for their region. That region
+            // may be this same thread, so the wait never finishes. Blocks are already committed.
+            if (relighter != null && !(relighter instanceof NullRelighter) && !Fawe.isFoliaServer()) {
                 // Don't relight twice!
                 if (!relighter.isFinished() && relighter.getLock().tryLock()) {
                     try {
