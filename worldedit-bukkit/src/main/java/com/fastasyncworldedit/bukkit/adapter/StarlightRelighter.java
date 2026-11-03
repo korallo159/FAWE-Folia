@@ -1,5 +1,6 @@
 package com.fastasyncworldedit.bukkit.adapter;
 
+import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.extent.processor.lighting.NMSRelighter;
 import com.fastasyncworldedit.core.extent.processor.lighting.Relighter;
 import com.fastasyncworldedit.core.queue.IQueueExtent;
@@ -99,6 +100,17 @@ public abstract class StarlightRelighter<SERVER_LEVEL, CHUNK_POS> implements Rel
      */
     protected void fixLighting(LongSet chunks, Runnable andThen) {
         Set<CHUNK_POS> coords = convertChunkKeysToChunkPos(chunks);
+        if (Fawe.isFoliaServer()) {
+            // The server tickets the chunks and runs the relight when their area is free.
+            // Waiting for those loads here parks the region that just finished the edit.
+            TaskManager.taskManager().task(() -> invokeRelight(
+                    coords,
+                    c -> {
+                    },
+                    postProcessCallback(andThen, coords)
+            ));
+            return;
+        }
         TaskManager.taskManager().task(() -> {
             // trigger chunk load and apply ticket on main thread
             List<CompletableFuture<?>> futures = chunkLoadFutures(coords);
