@@ -72,11 +72,16 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
     }
 
     /**
-     * Folia 26.x dropped the static {@code MinecraftServer.currentTick} field.
-     * The counter is now {@link MinecraftServer#getTickCount()}.
+     * Folia 26.x has no global {@code MinecraftServer.currentTick}, and
+     * {@link MinecraftServer#getTickCount()} throws because ticking is per region.
+     * The global region handle still counts ticks and can be read off the region thread.
      */
     private static int serverTick() {
-        return MinecraftServer.getServer().getTickCount();
+        try {
+            return (int) io.papermc.paper.threadedregions.RegionizedServer.getGlobalTickData().getCurrentTick();
+        } catch (Throwable ignored) {
+            return 0;
+        }
     }
 
     @Override
