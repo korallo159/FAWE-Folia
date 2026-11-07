@@ -86,7 +86,10 @@ into `worldedit-core`, which has no Bukkit classes of its own.
 - `PaperweightFaweAdapter` - feature, structure, and tree generation run on the target
   block's region.
 - `PaperweightGetBlocks` - beacon block entity removal runs on the beacon's region; supplies
-  the Bukkit world for the shared chunk routing above.
+  the Bukkit world for the shared chunk routing above. Reading a single block entity off
+  the owning region uses the chunk's block-entity map. `LevelChunk#getBlockEntity` goes
+  through `getCurrentWorldData().capturedTileEntities`, which is null on any other thread,
+  so `//copy` and `//stack` used to die on the first chest, sign, or bed.
 - `PaperweightPlatformAdapter` - chunk tickets, chunk packets, and the fallback chunk load in
   `ensureLoaded` run on the chunk's region instead of the server tick executor.
 

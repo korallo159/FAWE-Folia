@@ -78,7 +78,10 @@ public class PaperweightFaweWorldNativeAccess implements WorldNativeAccess<Level
      */
     private static int serverTick() {
         try {
-            return (int) io.papermc.paper.threadedregions.RegionizedServer.getGlobalTickData().getCurrentTick();
+            // Folia-only. The adapter compiles against Paper's dev bundle, which does not contain this class.
+            Class<?> regionizedServer = Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            Object tickData = regionizedServer.getMethod("getGlobalTickData").invoke(null);
+            return ((Number) tickData.getClass().getMethod("getCurrentTick").invoke(tickData)).intValue();
         } catch (Throwable ignored) {
             return 0;
         }

@@ -199,9 +199,16 @@ public class PaperweightGetBlocks extends AbstractBukkitGetBlocks<ServerLevel, L
 
     @Override
     public FaweCompoundTag tile(final int x, final int y, final int z) {
-        BlockEntity blockEntity = getChunk().getBlockEntity(new BlockPos((x & 15) + (
-                chunkX << 4), y, (z & 15) + (
-                chunkZ << 4)));
+        BlockPos pos = new BlockPos((x & 15) + (chunkX << 4), y, (z & 15) + (chunkZ << 4));
+        //FAWE-Folia start - LevelChunk#getBlockEntity reads capturedTileEntities from the
+        // owning region's WorldData. Off that thread getCurrentWorldData() is null.
+        BlockEntity blockEntity;
+        if (Fawe.isFoliaServer() && !org.bukkit.Bukkit.isOwnedByCurrentRegion(serverLevel.getWorld(), chunkX, chunkZ)) {
+            blockEntity = getChunk().getBlockEntities().get(pos);
+        } else {
+            blockEntity = getChunk().getBlockEntity(pos);
+        }
+        //FAWE-Folia end
         if (blockEntity == null) {
             return null;
         }
